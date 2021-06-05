@@ -1,0 +1,167 @@
+#!/usr/bin/env bash
+# set -x
+
+# Default parameters
+device=/dev/video0
+int=1
+pics=5
+outdir=~
+name="timelapse_pics"
+res=1280x720
+frames=5
+verbose=0
+
+# Usage
+function print_usage(){
+printf "
+simple_timelapse [OPTIONS]
+	-d | --device	Recording device (default /dev/video0)
+	-i | --interval	Interval between pictures in seconds (default 1)
+	-p | --pictures	Total number of pictures to take (default 5)
+	-t | --time	Total time in seconds (default 5)
+	-o | --outdir	Output directory (default home directory)
+	-r | --resolution	Resolution for the output pictures (default 1280x720)
+	-n | --name	Base name of the pictures (default 'timelapse_pics')
+	-f | --frames	Number of frames per picture (default 5)
+	-v | --verbose	Verbose output (default off)
+
+"
+}
+
+for arg in "$@"
+do
+ case $arg in
+  -d | --device)
+  shift
+  device=$1
+  shift
+  ;;
+  -i | --interval)
+  shift
+  int=$1
+  shift
+  ;;
+  -p | --pictures)
+  shift
+  pics=$1
+  shift
+  ;;
+  -t | --time)
+  shift
+  time=$1
+  shift
+  ;;
+  -o | --outdir)
+  shift
+  outdir=$1
+  shift
+  ;;
+  -r | --resolution)
+  shift
+  res=$1
+  shift
+  ;;
+  -n | --name)
+  shift
+  name=$1
+  shift
+  ;;
+  -f | --frames)
+  shift
+  frames=$1
+  shift
+  ;;
+  -v | --verbose)
+  verbose=1
+  shift
+  ;;
+  -h | --help)
+  print_usage
+  exit 1
+  ;;
+  *)
+ esac
+done
+
+# Check if fswebcam exists
+if ! command -v fswebcam &> /dev/null
+then
+ echo "fswebcam not installed!"
+ echo "Install using:"
+ echo "sudo apt install fswebcam"
+ exit 1
+fi
+
+# Check if ffmpeg exists
+if ! command -v ffmpeg &> /dev/null
+then
+ echo "ffmpeg not installed!"
+ echo "Install using:"
+ echo "sudo apt install ffmpeg"
+ exit 1
+fi
+
+if [[ $verbose = 1 ]]
+then
+ echo "Device: "$device > /dev/tty
+ echo "Interval: "$int" seconds" > /dev/tty
+ echo "Pictures: "$pics > /dev/tty
+ echo "Output directory: "$outdir > /dev/tty
+ echo "Resolution: "$res > /dev/tty
+ echo "Base name: "$name > /dev/tty
+fi
+
+# Create directory with images
+mkdir --parents $(readlink --canonicalize $outdir)"/"$name
+if [[ -z ${time+x} ]]
+then
+for pic_num in $(seq --equal-width 1 $pics)
+do
+ fswebcam \
+ --device $device \
+ --resolution $res \
+ --no-banner \
+ --png 9 \
+ --frames $frames \
+ --save $(readlink --canonicalize $outdir)"/"$name"/"$name"_"$pic_num.png &&
+ if [[ $pic_num -lt $pics ]]
+ then
+  echo -e "\nWaiting "$int" seconds..." > /dev/tty
+  sleep $int
+ fi
+done
+else
+start=$(date -u +%s)
+pic_num=1
+while [[ $(($(date -u +%s) - $start)) -lt $time ]]
+do
+pic_start=$(date -u +%s)
+ fswebcam \
+ --device $device \
+ --resolution $res \
+ --no-banner \
+ --png 9 \
+ --frames $frames \
+ --save $(readlink --canonicalize $outdir)"/"$name"/"$name"_"$pic_num.png &&
+  if [[ $(($int - ($(date -u +%s) - $pic_start))) -lt 0 ]]
+  then
+   echo -e "Error: Too many frames to write within interval.\nDecrease frames or increase interval."
+   exit 0
+  fi
+  if [[ $(($(date -u +%s) - $start + $int)) -lt $time ]]
+  then
+   echo -e "\nWaiting "$(($int - $(date -u +%s) + $pic_start))" seconds..." > /dev/tty
+   sleep $(($int - ($(date -u +%s) - $pic_start)))
+  fi
+  pic_num=$(($pic_num + 1))
+done
+fi
+# Create timelapse video
+ffmpeg \
+-framerate 5 \
+-pattern_type glob \
+-i $outdir/$name/'*.png' \
+-c:v libx264 \
+-r 30 \
+-pix_fmt yuv420p \
+$outdir"/"$name"/"$name"_timelapse.mp4"
