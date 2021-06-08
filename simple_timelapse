@@ -113,10 +113,12 @@ fi
 
 # Create directory with images
 mkdir --parents $(readlink --canonicalize $outdir)"/"$name
+
+# If number of pictures was selected
 if [[ -z ${time+x} ]]
 then
 pic_arr=($(seq --equal-width 1 $pics))
-for ((pic_num=1;pic_num<=$pics;pic_num++))
+for ((pic_num=0;pic_num<$pics;pic_num++))
 do
  fswebcam \
  --device $device \
@@ -124,41 +126,39 @@ do
  --no-banner \
  --png 9 \
  --frames $frames \
- --save $(readlink --canonicalize $outdir)"/"$name"/"$name"_"${pic_arr[$(($pic_num - 1))]}.png &&
- if [[ $pic_num -lt $pics ]]
+ --save $(readlink --canonicalize $outdir)"/"$name"/"$name"_"${pic_arr[$pic_num]}.png &&
+ if [[ $pic_num -lt $(($pics - 1)) ]]
  then
   echo -e "\nWaiting "$int" seconds..." > /dev/tty
   sleep $int
  fi
 done
+
 else
+
+# If total time was selected
 start=$(date -u +%s)
-pic_num=1
+pic_num=0
 pics=$(($time / $int + 10))
 pic_arr=($(seq --equal-width 1 $pics))
+pic_time=($(seq 0 $int $time))
 while [[ $(($(date -u +%s) - $start)) -lt $time ]]
 do
-pic_start=$(date -u +%s)
+ while [[ $(($(date -u +%s) - $start)) -lt ${pic_time[$pic_num]} ]]
+ do
+  sleep 0.25
+ done
  fswebcam \
- --device $device \
- --resolution $res \
- --no-banner \
- --png 9 \
- --frames $frames \
- --save $(readlink --canonicalize $outdir)"/"$name"/"$name"_"${pic_arr[$(($pic_num - 1))]}.png &&
-  if [[ $(($int - ($(date -u +%s) - $pic_start))) -lt 0 ]]
-  then
-   echo -e "Error: Too many frames to write within interval.\nDecrease frames or increase interval."
-   exit 0
-  fi
-  if [[ $(($(date -u +%s) - $start + $int)) -lt $time ]]
-  then
-   echo -e "\nWaiting "$(($int - $(date -u +%s) + $pic_start))" seconds..." > /dev/tty
-   sleep $(($int - ($(date -u +%s) - $pic_start)))
-  fi
+  --device $device \
+  --resolution $res \
+  --no-banner \
+  --png 9 \
+  --frames $frames \
+  --save $(readlink --canonicalize $outdir)"/"$name"/"$name"_"${pic_arr[$pic_num]}.png &&
   pic_num=$(($pic_num + 1))
-done
+ done
 fi
+
 # Create timelapse video
 ffmpeg \
 -framerate 5 \
