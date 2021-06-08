@@ -115,7 +115,8 @@ fi
 mkdir --parents $(readlink --canonicalize $outdir)"/"$name
 if [[ -z ${time+x} ]]
 then
-for pic_num in $(seq --equal-width 1 $pics)
+pic_arr=($(seq --equal-width 1 $pics))
+for ((pic_num=1;pic_num<=$pics;pic_num++))
 do
  fswebcam \
  --device $device \
@@ -123,7 +124,7 @@ do
  --no-banner \
  --png 9 \
  --frames $frames \
- --save $(readlink --canonicalize $outdir)"/"$name"/"$name"_"$pic_num.png &&
+ --save $(readlink --canonicalize $outdir)"/"$name"/"$name"_"${pic_arr[$(($pic_num - 1))]}.png &&
  if [[ $pic_num -lt $pics ]]
  then
   echo -e "\nWaiting "$int" seconds..." > /dev/tty
@@ -133,6 +134,8 @@ done
 else
 start=$(date -u +%s)
 pic_num=1
+pics=$(($time / $int + 10))
+pic_arr=($(seq --equal-width 1 $pics))
 while [[ $(($(date -u +%s) - $start)) -lt $time ]]
 do
 pic_start=$(date -u +%s)
@@ -142,7 +145,7 @@ pic_start=$(date -u +%s)
  --no-banner \
  --png 9 \
  --frames $frames \
- --save $(readlink --canonicalize $outdir)"/"$name"/"$name"_"$pic_num.png &&
+ --save $(readlink --canonicalize $outdir)"/"$name"/"$name"_"${pic_arr[$(($pic_num - 1))]}.png &&
   if [[ $(($int - ($(date -u +%s) - $pic_start))) -lt 0 ]]
   then
    echo -e "Error: Too many frames to write within interval.\nDecrease frames or increase interval."
