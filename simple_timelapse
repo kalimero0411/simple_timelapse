@@ -119,7 +119,7 @@ then
  echo "Device: "$device > /dev/tty
  echo "Interval: "$int" seconds" > /dev/tty
  echo "Pictures: "$pics > /dev/tty
- echo "Output directory: "$outdir > /dev/tty
+ echo "Output directory: "$(readlink --canonicalize $outdir) > /dev/tty
  echo "Resolution: "$res > /dev/tty
  echo "Base name: "$name > /dev/tty
 fi
@@ -169,7 +169,7 @@ then
  echo "Device: "$device > /dev/tty
  echo "Interval: "$int" seconds" > /dev/tty
  echo "Time: "$time" seconds" > /dev/tty
- echo "Output directory: "$outdir > /dev/tty
+ echo "Output directory: "$(readlink --canonicalize $outdir) > /dev/tty
  echo "Resolution: "$res > /dev/tty
  echo "Base name: "$name > /dev/tty
 fi
