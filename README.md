@@ -11,6 +11,7 @@ simple_timelapse [OPTIONS]
 	-r | --resolution	Resolution for the output pictures (default 1280x720)
 	-n | --name	Base name of the pictures (default 'timelapse_pics')
 	-f | --frames	Number of frames per picture (default 5)
+        -s | --timestamp	Put a timestamp at the bottom right
 	-v | --verbose	Verbose output (default off)
 ```
   
