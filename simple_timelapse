@@ -9,6 +9,7 @@ outdir=~
 name="timelapse_pics"
 res=1280x720
 frames=5
+timestamp=0
 verbose=0
 
 # Usage
@@ -23,6 +24,7 @@ simple_timelapse [OPTIONS]
 	-r | --resolution	Resolution for the output pictures (default 1280x720)
 	-n | --name	Base name of the pictures (default 'timelapse_pics')
 	-f | --frames	Number of frames per picture (default 5)
+	-s | --timestamp	Put a timestamp at the bottom right
 	-v | --verbose	Verbose output (default off)
 
 "
@@ -71,6 +73,10 @@ do
   frames=$1
   shift
   ;;
+  -s | --timestamp)
+  timestamp=1
+  shift
+  ;;
   -v | --verbose)
   verbose=1
   shift
@@ -101,6 +107,13 @@ then
  exit 1
 fi
 
+# Create directory with images
+mkdir --parents $(readlink --canonicalize $outdir)"/"$name
+
+# If number of pictures was selected
+if [[ -z ${time+x} ]]
+then
+pic_arr=($(seq --equal-width 1 $pics))
 if [[ $verbose = 1 ]]
 then
  echo "Device: "$device > /dev/tty
@@ -110,26 +123,35 @@ then
  echo "Resolution: "$res > /dev/tty
  echo "Base name: "$name > /dev/tty
 fi
-
-# Create directory with images
-mkdir --parents $(readlink --canonicalize $outdir)"/"$name
-
-# If number of pictures was selected
-if [[ -z ${time+x} ]]
-then
-pic_arr=($(seq --equal-width 1 $pics))
 for ((pic_num=0;pic_num<$pics;pic_num++))
 do
+ echo "Image "$name"_"${pic_arr[$pic_num]}".png" > /dev/tty
+ if [[ $timestamp = 1 ]]
+ then
  fswebcam \
- --device $device \
- --resolution $res \
- --no-banner \
- --png 9 \
- --frames $frames \
- --save $(readlink --canonicalize $outdir)"/"$name"/"$name"_"${pic_arr[$pic_num]}.png &&
+  --device $device \
+  --resolution $res \
+  --quiet \
+  --text-colour "#FF0000" \
+  --line-colour "#FF000000" \
+  --banner-colour "#FF000000" \
+  --timestamp "%d-%m-%Y %H:%M:%S (%Z)" \
+  --png 9 \
+  --frames $frames \
+  --save $(readlink --canonicalize $outdir)"/"$name"/"$name"_"${pic_arr[$pic_num]}.png
+ else
+  fswebcam \
+  --device $device \
+  --resolution $res \
+  --quiet \
+  --no-banner \
+  --png 9 \
+  --frames $frames \
+  --save $(readlink --canonicalize $outdir)"/"$name"/"$name"_"${pic_arr[$pic_num]}.png
+ fi &&
  if [[ $pic_num -lt $(($pics - 1)) ]]
  then
-  echo -e "\nWaiting "$int" seconds..." > /dev/tty
+  echo -e "Waiting "$int" seconds..." > /dev/tty
   sleep $int
  fi
 done
@@ -139,28 +161,58 @@ else
 # If total time was selected
 start=$(date -u +%s)
 pic_num=0
-pics=$(($time / $int + 10))
+pics=$(($time / $int + 1))
 pic_arr=($(seq --equal-width 1 $pics))
 pic_time=($(seq 0 $int $time))
+if [[ $verbose = 1 ]]
+then
+ echo "Device: "$device > /dev/tty
+ echo "Interval: "$int" seconds" > /dev/tty
+ echo "Time: "$time > /dev/tty
+ echo "Output directory: "$outdir > /dev/tty
+ echo "Resolution: "$res > /dev/tty
+ echo "Base name: "$name > /dev/tty
+fi
 while [[ $(($(date -u +%s) - $start)) -lt $time ]]
 do
  while [[ $(($(date -u +%s) - $start)) -lt ${pic_time[$pic_num]} ]]
  do
   sleep 0.25
  done
+ echo "Image "$name"_"${pic_arr[$pic_num]}".png" > /dev/tty
+ if [[ $timestamp = 1 ]]
+ then
  fswebcam \
   --device $device \
   --resolution $res \
+  --quiet \
+  --text-colour "#FF0000" \
+  --line-colour "#FF000000" \
+  --banner-colour "#FF000000" \
+  --timestamp "%d-%m-%Y %H:%M:%S (%Z)" \
+  --png 9 \
+  --frames $frames \
+  --save $(readlink --canonicalize $outdir)"/"$name"/"$name"_"${pic_arr[$pic_num]}.png
+ else
+  fswebcam \
+  --device $device \
+  --resolution $res \
+  --quiet \
   --no-banner \
   --png 9 \
   --frames $frames \
-  --save $(readlink --canonicalize $outdir)"/"$name"/"$name"_"${pic_arr[$pic_num]}.png &&
+  --save $(readlink --canonicalize $outdir)"/"$name"/"$name"_"${pic_arr[$pic_num]}.png
+ fi &&
   pic_num=$(($pic_num + 1))
  done
 fi
 
 # Create timelapse video
+echo "Creating timelapse video..." > /dev/tty
 ffmpeg \
+-y \
+-hide_banner \
+-loglevel warning \
 -framerate 5 \
 -pattern_type glob \
 -i $outdir/$name/'*.png' \
