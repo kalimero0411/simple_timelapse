@@ -108,7 +108,7 @@ then
 fi
 
 # Create directory with images
-mkdir --parents $(readlink --canonicalize $outdir)"/"$name
+mkdir --parents $(readlink --canonicalize $outdir)"/"$name"/pics"
 
 # If number of pictures was selected
 if [[ -z ${time+x} ]]
@@ -138,7 +138,7 @@ do
   --timestamp "%d-%m-%Y %H:%M:%S (%Z)" \
   --png 9 \
   --frames $frames \
-  --save $(readlink --canonicalize $outdir)"/"$name"/"$name"_"${pic_arr[$pic_num]}.png
+  --save $(readlink --canonicalize $outdir)"/"$name"/pics/"$name"_"${pic_arr[$pic_num]}.png
  else
   fswebcam \
   --device $device \
@@ -147,7 +147,7 @@ do
   --no-banner \
   --png 9 \
   --frames $frames \
-  --save $(readlink --canonicalize $outdir)"/"$name"/"$name"_"${pic_arr[$pic_num]}.png
+  --save $(readlink --canonicalize $outdir)"/"$name"/pics/"$name"_"${pic_arr[$pic_num]}.png
  fi &&
  if [[ $pic_num -lt $(($pics - 1)) ]]
  then
@@ -192,7 +192,7 @@ do
   --timestamp "%d-%m-%Y %H:%M:%S (%Z)" \
   --png 9 \
   --frames $frames \
-  --save $(readlink --canonicalize $outdir)"/"$name"/"$name"_"${pic_arr[$pic_num]}.png
+  --save $(readlink --canonicalize $outdir)"/"$name"/pics/"$name"_"${pic_arr[$pic_num]}.png
  else
   fswebcam \
   --device $device \
@@ -201,7 +201,7 @@ do
   --no-banner \
   --png 9 \
   --frames $frames \
-  --save $(readlink --canonicalize $outdir)"/"$name"/"$name"_"${pic_arr[$pic_num]}.png
+  --save $(readlink --canonicalize $outdir)"/"$name"/pics/"$name"_"${pic_arr[$pic_num]}.png
  fi &&
   pic_num=$(($pic_num + 1))
  done
@@ -215,7 +215,7 @@ ffmpeg \
 -loglevel warning \
 -framerate 5 \
 -pattern_type glob \
--i $outdir/$name/'*.png' \
+-i $outdir/$name"/pics/*.png" \
 -c:v libx264 \
 -r 30 \
 -pix_fmt yuv420p \
