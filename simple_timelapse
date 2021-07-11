@@ -209,13 +209,13 @@ fi
 
 # Create timelapse video
 echo "Creating timelapse video..." > /dev/tty
+cat $outdir/$name"/pics/*.png" |
 ffmpeg \
 -y \
 -hide_banner \
 -loglevel warning \
 -framerate 5 \
--pattern_type glob \
--i $outdir/$name"/pics/*.png" \
+-i - \
 -c:v libx264 \
 -r 30 \
 -pix_fmt yuv420p \
