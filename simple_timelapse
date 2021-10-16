@@ -9,8 +9,6 @@ outdir=~
 name="timelapse_pics"
 res=1280x720
 frames=5
-timestamp=0
-verbose=0
 
 # Usage
 function print_usage(){
@@ -114,19 +112,19 @@ mkdir --parents $(readlink --canonicalize $outdir)"/"$name"/pics"
 if [[ -z ${time+x} ]]
 then
 pic_arr=($(seq --equal-width 1 $pics))
-if [[ $verbose = 1 ]]
+if [[ ! -z ${verbose+x} ]]
 then
- echo "Device: "$device > /dev/tty
- echo "Interval: "$int" seconds" > /dev/tty
- echo "Pictures: "$pics > /dev/tty
- echo "Output directory: "$(readlink --canonicalize $outdir) > /dev/tty
- echo "Resolution: "$res > /dev/tty
- echo "Base name: "$name > /dev/tty
+ echo "Device: "$device >> $(readlink /proc/$$/fd/2)
+ echo "Interval: "$int" seconds" >> $(readlink /proc/$$/fd/2)
+ echo "Pictures: "$pics >> $(readlink /proc/$$/fd/2)
+ echo "Output directory: "$(readlink --canonicalize $outdir) >> $(readlink /proc/$$/fd/2)
+ echo "Resolution: "$res >> $(readlink /proc/$$/fd/2)
+ echo "Base name: "$name >> $(readlink /proc/$$/fd/2)
 fi
 for ((pic_num=0;pic_num<$pics;pic_num++))
 do
- echo "Image "$name"_"${pic_arr[$pic_num]}".png" > /dev/tty
- if [[ $timestamp = 1 ]]
+ echo "Image "$name"_"${pic_arr[$pic_num]}".png" >> $(readlink /proc/$$/fd/2)
+ if [[ ! -z ${timestamp+x} ]]
  then
  fswebcam \
   --device $device \
@@ -151,7 +149,7 @@ do
  fi &&
  if [[ $pic_num -lt $(($pics - 1)) ]]
  then
-  echo -e "Waiting "$int" seconds..." > /dev/tty
+  echo -e "Waiting "$int" seconds..." >> $(readlink /proc/$$/fd/2)
   sleep $int
  fi
 done
@@ -161,17 +159,17 @@ else
 # If total time was selected
 start=$(date -u +%s)
 pic_num=0
-pics=$(($time / $int + 1))
+pics=$(($time / $int + 2))
 pic_arr=($(seq --equal-width 1 $pics))
 pic_time=($(seq 0 $int $time))
 if [[ $verbose = 1 ]]
 then
- echo "Device: "$device > /dev/tty
- echo "Interval: "$int" seconds" > /dev/tty
- echo "Time: "$time" seconds" > /dev/tty
- echo "Output directory: "$(readlink --canonicalize $outdir) > /dev/tty
- echo "Resolution: "$res > /dev/tty
- echo "Base name: "$name > /dev/tty
+ echo "Device: "$device >> $(readlink /proc/$$/fd/2)
+ echo "Interval: "$int" seconds" >> $(readlink /proc/$$/fd/2)
+ echo "Time: "$time" seconds" >> $(readlink /proc/$$/fd/2)
+ echo "Output directory: "$(readlink --canonicalize $outdir) >> $(readlink /proc/$$/fd/2)
+ echo "Resolution: "$res >> $(readlink /proc/$$/fd/2)
+ echo "Base name: "$name >> $(readlink /proc/$$/fd/2)
 fi
 while [[ $(($(date -u +%s) - $start)) -lt $time ]]
 do
@@ -179,8 +177,8 @@ do
  do
   sleep 0.25
  done
- echo "Image "$name"_"${pic_arr[$pic_num]}".png" > /dev/tty
- if [[ $timestamp = 1 ]]
+ echo "Image "$name"_"${pic_arr[$pic_num]}".png" >> $(readlink /proc/$$/fd/2)
+ if [[ ! -z ${timestamp+x} ]]
  then
  fswebcam \
   --device $device \
@@ -208,7 +206,7 @@ do
 fi
 
 # Create timelapse video
-echo "Creating timelapse video..." > /dev/tty
+echo "Creating timelapse video..." >> $(readlink /proc/$$/fd/2)
 cat $outdir/$name"/pics/*.png" |
 ffmpeg \
 -y \
