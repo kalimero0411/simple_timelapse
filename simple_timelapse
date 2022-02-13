@@ -9,6 +9,7 @@ outdir=~
 name="timelapse_pics"
 res=1280x720
 frames=5
+framerate=5
 
 # Usage
 function print_usage(){
@@ -22,6 +23,7 @@ simple_timelapse [OPTIONS]
 	-r | --resolution	Resolution for the output pictures (default 1280x720)
 	-n | --name	Base name of the pictures (default 'timelapse_pics')
 	-f | --frames	Number of frames per picture (default 5)
+	-e | --framerate	Frames per second in output video (default 5)
 	-s | --timestamp	Put a timestamp at the bottom right
 	-v | --verbose	Verbose output (default off)
 
@@ -69,6 +71,11 @@ do
   -f | --frames)
   shift
   frames=$1
+  shift
+  ;;
+  -e | --framerate)
+  shift
+  framerate=$1
   shift
   ;;
   -s | --timestamp)
@@ -212,7 +219,7 @@ ffmpeg \
 -y \
 -hide_banner \
 -loglevel warning \
--framerate 5 \
+-framerate $framerate \
 -i - \
 -c:v libx264 \
 -r 30 \
