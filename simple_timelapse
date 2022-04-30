@@ -4,7 +4,6 @@
 # Default parameters
 device=/dev/video0
 int=1
-pics=5
 outdir=~
 name="timelapse_pics"
 res=1280x720
@@ -17,8 +16,8 @@ printf "
 simple_timelapse [OPTIONS]
 	-d | --device	Recording device (default /dev/video0)
 	-i | --interval	Interval between pictures in seconds (default 1)
-	-p | --pictures	Total number of pictures to take (default 5)
-	-t | --time	Total time in seconds (default 5)
+	-p | --pictures	Total number of pictures to take (default 5; incompatible with --time)
+	-t | --time	Total time in seconds (default 5; incompatible with --pictures)
 	-o | --outdir	Output directory (default home directory)
 	-r | --resolution	Resolution for the output pictures (default 1280x720)
 	-n | --name	Base name of the pictures (default 'timelapse_pics')
@@ -34,49 +33,40 @@ for arg in "$@"
 do
  case $arg in
   -d | --device)
-  shift
-  device=$1
-  shift
+  device=$2
+  shift 2
   ;;
   -i | --interval)
-  shift
-  int=$1
-  shift
+  int=$2
+  shift 2
   ;;
   -p | --pictures)
-  shift
-  pics=$1
-  shift
+  pics=$2
+  shift 2
   ;;
   -t | --time)
-  shift
-  time=$1
-  shift
+  time=$2
+  shift 2
   ;;
   -o | --outdir)
-  shift
-  outdir=$1
-  shift
+  outdir=$2
+  shift 2
   ;;
   -r | --resolution)
-  shift
-  res=$1
-  shift
+  res=$2
+  shift 2
   ;;
   -n | --name)
-  shift
-  name=$1
-  shift
+  name=$2
+  shift 2
   ;;
   -f | --frames)
-  shift
-  frames=$1
-  shift
+  frames=$2
+  shift 2
   ;;
   -e | --framerate)
-  shift
-  framerate=$1
-  shift
+  framerate=$2
+  shift 2
   ;;
   -s | --timestamp)
   timestamp=1
@@ -91,6 +81,15 @@ do
   exit 1
   ;;
   *)
+  if [ -f "$1" ]
+  then
+   break
+  else
+  echo "Unknown option: "$1
+  print_usage
+  exit 1
+  fi
+  ;;
  esac
 done
 
@@ -112,14 +111,20 @@ then
  exit 1
 fi
 
+# Default to 5 pictures
+if [ -z ${pics+x} ] && [ -z ${time+x} ]
+then
+ pics=5
+fi
+
 # Create directory with images
 mkdir --parents $(readlink --canonicalize $outdir)"/"$name"/pics"
 
 # If number of pictures was selected
-if [[ -z ${time+x} ]]
+if [ ! -z ${pics+x} ]
 then
 pic_arr=($(seq --equal-width 1 $pics))
-if [[ ! -z ${verbose+x} ]]
+if [ ! -z ${verbose+x} ]
 then
  echo "Device: "$device >> $(readlink /proc/$$/fd/2)
  echo "Interval: "$int" seconds" >> $(readlink /proc/$$/fd/2)
@@ -131,7 +136,7 @@ fi
 for ((pic_num=0;pic_num<$pics;pic_num++))
 do
  echo "Image "$name"_"${pic_arr[$pic_num]}".png" >> $(readlink /proc/$$/fd/2)
- if [[ ! -z ${timestamp+x} ]]
+ if [ ! -z ${timestamp+x} ]
  then
  fswebcam \
   --device $device \
@@ -154,7 +159,7 @@ do
   --frames $frames \
   --save $(readlink --canonicalize $outdir)"/"$name"/pics/"$name"_"${pic_arr[$pic_num]}.png
  fi &&
- if [[ $pic_num -lt $(($pics - 1)) ]]
+ if [ $pic_num -lt "$(($pics - 1))" ]
  then
   echo -e "Waiting "$int" seconds..." >> $(readlink /proc/$$/fd/2)
   sleep $int
@@ -169,7 +174,7 @@ pic_num=0
 pics=$(($time / $int + 2))
 pic_arr=($(seq --equal-width 1 $pics))
 pic_time=($(seq 0 $int $time))
-if [[ $verbose = 1 ]]
+if [ $verbose -eq 1 ]
 then
  echo "Device: "$device >> $(readlink /proc/$$/fd/2)
  echo "Interval: "$int" seconds" >> $(readlink /proc/$$/fd/2)
@@ -178,14 +183,14 @@ then
  echo "Resolution: "$res >> $(readlink /proc/$$/fd/2)
  echo "Base name: "$name >> $(readlink /proc/$$/fd/2)
 fi
-while [[ $(($(date -u +%s) - $start)) -lt $time ]]
+while [ "$(($(date -u +%s) - $start))" -lt "$time" ]
 do
- while [[ $(($(date -u +%s) - $start)) -lt ${pic_time[$pic_num]} ]]
+ while [ "$(($(date -u +%s) - $start))" -lt "${pic_time[$pic_num]}" ]
  do
   sleep 0.25
  done
  echo "Image "$name"_"${pic_arr[$pic_num]}".png" >> $(readlink /proc/$$/fd/2)
- if [[ ! -z ${timestamp+x} ]]
+ if [ ! -z ${timestamp+x} ]
  then
  fswebcam \
   --device $device \
