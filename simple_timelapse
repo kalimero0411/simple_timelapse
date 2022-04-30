@@ -3,7 +3,7 @@
 
 # Default parameters
 device=/dev/video0
-int=1
+int=3
 outdir=~
 name="timelapse_pics"
 res=1280x720
@@ -29,8 +29,9 @@ simple_timelapse [OPTIONS]
 "
 }
 
-for arg in "$@"
+while [ "$#" -gt 0 ]
 do
+arg=$1
  case $arg in
   -d | --device)
   device=$2
@@ -135,7 +136,7 @@ then
 fi
 for ((pic_num=0;pic_num<$pics;pic_num++))
 do
- echo "Image "$name"_"${pic_arr[$pic_num]}".png" >> $(readlink /proc/$$/fd/2)
+ if [ ! -z ${verbose+x} ]; then echo "Image "$name"_"${pic_arr[$pic_num]}".png" >> $(readlink /proc/$$/fd/2); fi
  if [ ! -z ${timestamp+x} ]
  then
  fswebcam \
@@ -161,7 +162,7 @@ do
  fi &&
  if [ $pic_num -lt "$(($pics - 1))" ]
  then
-  echo -e "Waiting "$int" seconds..." >> $(readlink /proc/$$/fd/2)
+  if [ ! -z ${verbose+x} ]; then echo -e "Waiting "$int" seconds..." >> $(readlink /proc/$$/fd/2); fi
   sleep $int
  fi
 done
@@ -183,13 +184,14 @@ then
  echo "Resolution: "$res >> $(readlink /proc/$$/fd/2)
  echo "Base name: "$name >> $(readlink /proc/$$/fd/2)
 fi
+
 while [ "$(($(date -u +%s) - $start))" -lt "$time" ]
 do
  while [ "$(($(date -u +%s) - $start))" -lt "${pic_time[$pic_num]}" ]
  do
   sleep 0.25
  done
- echo "Image "$name"_"${pic_arr[$pic_num]}".png" >> $(readlink /proc/$$/fd/2)
+ if [ ! -z ${verbose+x} ]; then echo "Image "$name"_"${pic_arr[$pic_num]}".png" >> $(readlink /proc/$$/fd/2); fi
  if [ ! -z ${timestamp+x} ]
  then
  fswebcam \
@@ -213,20 +215,23 @@ do
   --frames $frames \
   --save $(readlink --canonicalize $outdir)"/"$name"/pics/"$name"_"${pic_arr[$pic_num]}.png
  fi &&
-  pic_num=$(($pic_num + 1))
+  ((pic_num++))
  done
 fi
 
 # Create timelapse video
-echo "Creating timelapse video..." >> $(readlink /proc/$$/fd/2)
-cat $outdir/$name"/pics/*.png" |
+if [ ! -z ${verbose+x} ]; then echo "Creating timelapse video..." >> $(readlink /proc/$$/fd/2); fi
+sleep 3
 ffmpeg \
 -y \
 -hide_banner \
+-start_number 1 \
 -loglevel warning \
 -framerate $framerate \
--i - \
+-pattern_type glob \
+-i $outdir/$name"/pics/*.png" \
 -c:v libx264 \
--r 30 \
+-r $framerate \
 -pix_fmt yuv420p \
 $outdir"/"$name"/"$name"_timelapse.mp4"
+
